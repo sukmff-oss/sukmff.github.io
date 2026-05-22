@@ -814,11 +814,11 @@ function draw() {
     ctx.font = `${Math.round(24 * canvas.width / 960)}px Courier New`;
     ctx.fillText(`分數: ${score}  擊殺: ${kills}  波數: ${wave}`, W / 2, H / 2);
     const lastSave = loadGame();
-    if (lastSave) {{
+    if (lastSave) {
       ctx.fillStyle = '#aaf';
       ctx.font = `${Math.round(16 * canvas.width / 960)}px Courier New`;
       ctx.fillText(`上次: ${lastSave.score}/${lastSave.kills}/${lastSave.wave}`, W / 2, H / 2 + 28);
-    }}
+    }
     ctx.fillStyle = '#0f0';
     ctx.font = `${Math.round(18 * canvas.width / 960)}px Courier New`;
     ctx.fillText('點任一處重新開始', W / 2, H / 2 + 50);
@@ -934,17 +934,17 @@ function resetGame() {
 // ==================== 遊戲循環 ====================
 
 // ==================== 存檔系統 ====================
-function saveGame() {{
-  const saveData = {{ score, kills, wave }};
+function saveGame() {
+  const saveData = { score, kills, wave };
   localStorage.setItem('streetKing_save', JSON.stringify(saveData));
-}}
+}
 
-function loadGame() {{
-  try {{
+function loadGame() {
+  try {
     const data = localStorage.getItem('streetKing_save');
     return data ? JSON.parse(data) : null;
-  }} catch(e) {{ return null; }}
-}}
+  } catch(e) { return null; }
+}
 
 function gameLoop(ts) {
   const dt = ts - lastTime; lastTime = ts;
