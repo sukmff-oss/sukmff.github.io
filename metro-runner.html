@@ -424,7 +424,7 @@ function spawnClown(lv,num){
   const speed=1.0+lv*0.015;
   const atk=12+lv*0.8;
   const pts=80+lv*15;
-  mesh.position.set((Math.random()-0.5)*6,0.45,-50);
+  mesh.position.set((Math.random()-0.5)*6,0.45,-43);
   const e={mesh,hp,maxHp:hp,speed,pts,atk,atkCd:1.8,atkTimer:1.8,isBoss:false,bossLv:lv,name:'小丑BOSS #'+num,color:0xff0000,dead:false,flash:0,attackRange:2.0,isArmored:false,armor:0,isClown:true,lastEMissile:0,emissileCd:2+Math.random(),hasLaughed:false,phase:0};
   mesh.userData.enemy=e;enemies.push(e);enemyMeshes.push(mesh);scene.add(mesh);
   document.getElementById('clown-bar').style.display='block';
