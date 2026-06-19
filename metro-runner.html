@@ -129,8 +129,39 @@ const drones=[];
 function spawnDrone(idx){const offsetX=(idx%2===0?-1:1)*(1.5+idx*0.8);const d={idx,x:offsetX,y:0,t:idx*0.4,lastMissile:0,missileDelay:600-idx*40};drones.push(d);const droneGroup=new THREE.Group();const bodyGeo=new THREE.BoxGeometry(0.4,0.08,0.6);const bodyMat=new THREE.MeshStandardMaterial({color:0x445566,metalness:0.7,roughness:0.3});const body=new THREE.Mesh(bodyGeo,bodyMat);droneGroup.add(body);for(const side of[-1,1]){const wGeo=new THREE.BoxGeometry(0.35,0.02,0.15);const wMat=new THREE.MeshStandardMaterial({color:0x667788,metalness:0.6});const w=new THREE.Mesh(wGeo,wMat);w.position.set(side*0.38,0,0);droneGroup.add(w);}const lGeo=new THREE.SphereGeometry(0.05,6,6);const lMat=new THREE.MeshStandardMaterial({color:0x00ffff,emissive:0x00ffff,emissiveIntensity:1});const light=new THREE.Mesh(lGeo,lMat);light.position.y=0.06;droneGroup.add(light);const pl=new THREE.PointLight(0x00ffff,0.5,4);droneGroup.add(pl);d.mesh=droneGroup;d.light=pl;scene.add(droneGroup);showDronePanel();}
 function updateDrones(dt){const now=performance.now();const pPos=camera.position;for(const d of drones){d.t+=dt;const targetX=pPos.x+d.x,targetY=pPos.y+2.0+d.idx*0.3,targetZ=pPos.z+1.5;d.mesh.position.x+=(targetX-d.mesh.position.x)*3*dt;d.mesh.position.y+=(targetY-d.mesh.position.y)*3*dt;d.mesh.position.z+=(targetZ-d.mesh.position.z)*3*dt;d.mesh.position.y+=Math.sin(d.t*2.5+d.idx)*0.05;d.mesh.rotation.y=player.yaw;if(now-d.lastMissile>d.missileDelay){d.lastMissile=now;fireDroneMissile(d);}}}
 const missiles=[];
-function fireDroneMissile(drone){ensureAudio();playSound('shoot_missile');let target=null,minD=Infinity;for(const e of enemies){if(e.hp<=0)continue;const d=drone.mesh.position.distanceTo(e.mesh.position);if(d<minD){minD=d;target=e;}}const tx=target?target.mesh.position.x:camera.position.x+(Math.random()-0.5)*8;const ty=target?target.mesh.position.y:camera.position.y-1;const tz=target?target.mesh.position.z:-30;const geo=new THREE.CylinderGeometry(0.05,0.08,0.35,6);geo.rotateX(Math.PI/2);const mat=new THREE.MeshStandardMaterial({color:0xff8800,emissive:0xff4400,emissiveIntensity:0.8,metalness:0.5});const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(drone.mesh.position);scene.add(mesh);const ml=new THREE.PointLight(0xff6600,1.5,5);ml.position.copy(mesh.position);scene.add(ml);missiles.push({mesh,light:ml,tx,ty,tz,target,speed:12,trail:[],life:4.0});}
-function updateMissiles(dt){for(let i=missiles.length-1;i>=0;i--){const m=missiles[i];m.life-=dt;if(m.life<=0){scene.remove(m.mesh);scene.remove(m.light);missiles.splice(i,1);continue;}if(m.target&&m.target.hp>0){m.tx=m.target.mesh.position.x;m.ty=m.target.mesh.position.y;m.tz=m.target.mesh.position.z;}const dx=m.tx-m.mesh.position.x,dy=m.ty-m.mesh.position.y,dz=m.tz-m.mesh.position.z;const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);if(dist>0.5){const spd=m.speed*dt;m.mesh.position.x+=(dx/dist)*spd;m.mesh.position.y+=(dy/dist)*spd;m.mesh.position.z+=(dz/dist)*spd;m.light.position.copy(m.mesh.position);m.mesh.lookAt(m.mesh.position.x+dx/dist,m.mesh.position.y+dy/dist,m.mesh.position.z+dz/dist);}else{scene.remove(m.mesh);scene.remove(m.light);missiles.splice(i,1);playSound('explode');spawnHitParticles(new THREE.Vector3(m.tx,m.ty,m.tz),0xff8800);const radius=2.5;for(const e of enemies){if(e.hp<=0)continue;const ed=e.mesh.position.distanceTo(new THREE.Vector3(m.tx,m.ty,m.tz));if(ed<radius){e.hp-=getAtk()*2.5*(1-ed/radius);e.flash=0.15;if(e.hp<=0)killEnemy(e);}}}}
+function fireDroneMissile(drone){
+  ensureAudio();playSound('shoot_missile');
+  let target=null,minD=Infinity;
+  for(const e of enemies){if(e.hp<=0)continue;const d=drone.mesh.position.distanceTo(e.mesh.position);if(d<minD){minD=d;target=e;}}
+  const tx=target?target.mesh.position.x:camera.position.x+(Math.random()-0.5)*8;
+  const ty=target?target.mesh.position.y:camera.position.y-1;
+  const tz=target?target.mesh.position.z:-30;
+  const geo=new THREE.CylinderGeometry(0.05,0.08,0.35,6);geo.rotateX(Math.PI/2);
+  const mat=new THREE.MeshStandardMaterial({color:0xff8800,emissive:0xff4400,emissiveIntensity:0.8,metalness:0.5});
+  const mesh=new THREE.Mesh(geo,mat);mesh.position.copy(drone.mesh.position);scene.add(mesh);
+  const ml=new THREE.PointLight(0xff6600,1.5,5);ml.position.copy(mesh.position);scene.add(ml);
+  missiles.push({mesh,light:ml,tx,ty,tz,target,speed:12,trail:[],life:4.0});
+}
+function updateMissiles(dt){
+  for(let i=missiles.length-1;i>=0;i--){
+    const m=missiles[i];m.life-=dt;
+    if(m.life<=0){scene.remove(m.mesh);scene.remove(m.light);missiles.splice(i,1);continue;}
+    if(m.target&&m.target.hp>0){m.tx=m.target.mesh.position.x;m.ty=m.target.mesh.position.y;m.tz=m.target.mesh.position.z;}
+    const dx=m.tx-m.mesh.position.x,dy=m.ty-m.mesh.position.y,dz=m.tz-m.mesh.position.z;
+    const dist=Math.sqrt(dx*dx+dy*dy+dz*dz);
+    if(dist>0.5){
+      const spd=m.speed*dt;
+      m.mesh.position.x+=(dx/dist)*spd;m.mesh.position.y+=(dy/dist)*spd;m.mesh.position.z+=(dz/dist)*spd;
+      m.light.position.copy(m.mesh.position);
+      m.mesh.lookAt(m.mesh.position.x+dx/dist,m.mesh.position.y+dy/dist,m.mesh.position.z+dz/dist);
+    }else{
+      scene.remove(m.mesh);scene.remove(m.light);missiles.splice(i,1);playSound('explode');
+      spawnHitParticles(new THREE.Vector3(m.tx,m.ty,m.tz),0xff8800);
+      const radius=2.5;
+      for(const e of enemies){if(e.hp<=0)continue;const ed=e.mesh.position.distanceTo(new THREE.Vector3(m.tx,m.ty,m.tz));if(ed<radius){e.hp-=getAtk()*2.5*(1-ed/radius);e.flash=0.15;if(e.hp<=0)killEnemy(e);}}
+    }
+  }
+}
 let dmgFlashTimer=0;const dmgFlashEl=document.getElementById('dmg-flash');
 function damagePlayer(dmg){if(player.invincible>0)return;G.hp-=dmg;if(G.hp<0)G.hp=0;player.invincible=0.5;dmgFlashTimer=0.15;playSound('hit');if(G.hp<=0)gameOver();updateHUD();}
 function updateDamageFlash(dt){if(dmgFlashTimer>0){dmgFlashTimer-=dt;dmgFlashEl.style.opacity=dmgFlashTimer/0.15;}else{dmgFlashEl.style.opacity=0;}if(player.invincible>0)player.invincible-=dt;}
