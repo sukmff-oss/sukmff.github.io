@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎮 瘋狂塔防英雄</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a1a; color: #fff; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+canvas { display: block; }
+
+/* ═══════════════════════════════════════
+   GOLD GLOW UI SYSTEM (金箔炫光UI)
+   ═══════════════════════════════════════ */
+.ui-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 100;
+}
+.ui-panel {
+  background: linear-gradient(135deg, rgba(30,20,5,0.95), rgba(50,35,10,0.9));
+  border: 2px solid #d4a847;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(212,168,71,0.4), inset 0 0 30px rgba(212,168,71,0.1);
+  padding: 12px 16px;
+  pointer-events: auto;
+}
+.gold-text {
+  color: #f5d98a;
+  text-shadow: 0 0 10px rgba(245,217,138,0.8), 0 0 20px rgba(212,168,71,0.5);
+}
+
+/* Top HUD */
+#hud-top {
+  position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 20px; z-index: 200;
+}
+.hud-item {
+  background: linear-gradient(135deg, #1a1520, #2a1f35);
+  border: 2px solid #8b5cf6;
+  border-radius: 8px;
+  padding: 8px 16px;
+  text-align: center;
+  box-shadow: 0 0 15px rgba(139,92,246,0.3);
+}
+.hud-label { font-size: 11px; color: #a78bfa; text-transform: uppercase; letter-spacing: 1px; }
+.hud-value { font-size: 20px; font-weight: bold; color: #e9d5ff; text-shadow: 0 0 8px rgba(139,92,246,0.5); }
+
+/* Bottom Action Bar */
+#action-bar {
+  position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 10px; z-index: 200;
+}
+.action-btn {
+  width: 60px; height: 60px; border-radius: 12px; border: 2px solid #d4a847;
+  background: linear-gradient(145deg, #2a1f10, #1a1208);
+  color: #f5d98a; font-size: 28px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(212,168,71,0.3);
+  transition: all 0.2s;
+}
+.action-btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(212,168,71,0.5); }
+.action-btn:active { transform: scale(0.95); }
+.action-btn.disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Tower Selection Panel */
+#tower-panel {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  display: none; gap: 10px; z-index: 200;
+}
+.tower-card {
+  width: 70px; height: 85px; border-radius: 10px; border: 2px solid #d4a847;
+  background: linear-gradient(145deg, #1a1510, #0a0805);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; transition: all 0.2s;
+  box-shadow: 0 0 10px rgba(212,168,71,0.2);
+}
+.tower-card:hover { border-color: #f5d98a; transform: scale(1.08); }
+.tower-card.selected { border-color: #22d3ee; box-shadow: 0 0 20px rgba(34,211,238,0.5); }
+.tower-icon { font-size: 28px; }
+.tower-name { font-size: 9px; color: #f5d98a; text-align: center; }
+.tower-cost { font-size: 10px; color: #fbbf24; }
+
+/* Spell Panel */
+#spell-panel {
+  position: fixed; right: 15px; top: 50%; transform: translateY(-50%);
+  display: none; flex-direction: column; gap: 10px; z-index: 200;
+}
+.spell-card {
+  width: 70px; height: 70px; border-radius: 12px; border: 2px solid;
+  background: linear-gradient(145deg, #1a1520, #2a1f35);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; transition: all 0.2s;
+}
+.spell-card.fire { border-color: #ef4444; box-shadow: 0 0 15px rgba(239,68,68,0.4); }
+.spell-card.ice { border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.4); }
+.spell-card.heal { border-color: #22c55e; box-shadow: 0 0 15px rgba(34,197,94,0.4); }
+.spell-card:hover { transform: scale(1.1); }
+.spell-card.on-cooldown { opacity: 0.4; cursor: not-allowed; }
+.spell-icon { font-size: 26px; }
+.spell-name { font-size: 9px; color: #e5e5e5; }
+.spell-cd { font-size: 10px; color: #fbbf24; }
+
+/* Wave Info */
+#wave-info {
+  position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(20,10,5,0.9), rgba(40,25,10,0.85));
+  border: 2px solid #d4a847; border-radius: 20px;
+  padding: 8px 24px; z-index: 200;
+  box-shadow: 0 0 20px rgba(212,168,71,0.3);
+}
+.wave-text { font-size: 16px; color: #f5d98a; font-weight: bold; letter-spacing: 2px; }
+
+/* Hero Deploy Panel */
+#hero-panel {
+  position: fixed; left: 15px; top: 50%; transform: translateY(-50%);
+  display: none; flex-direction: column; gap: 8px; z-index: 200;
+}
+.hero-card {
+  width: 65px; height: 80px; border-radius: 10px; border: 2px solid;
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  cursor: pointer; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; transition: all 0.2s;
+}
+.hero-card.dps { border-color: #ef4444; }
+.hero-card.tank { border-color: #f59e0b; }
+.hero-card.healer { border-color: #22c55e; }
+.hero-card.mage { border-color: #8b5cf6; }
+.hero-card.locked { opacity: 0.35; cursor: not-allowed; filter: grayscale(0.8); }
+.hero-card:not(.locked):hover { transform: scale(1.08); }
+.hero-card.selected { box-shadow: 0 0 25px rgba(255,255,255,0.5); border-width: 3px; }
+.hero-icon { font-size: 26px; }
+.hero-name { font-size: 8px; color: #e5e5e5; text-align: center; }
+.hero-level { font-size: 9px; color: #fbbf24; }
+
+/* Game Over / Victory Overlay */
+#game-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.85); display: none; align-items: center;
+  justify-content: center; flex-direction: column; gap: 20px; z-index: 300;
+}
+#game-overlay.active { display: flex; }
+.overlay-title {
+  font-size: 48px; font-weight: 900; letter-spacing: 4px;
+  text-shadow: 0 0 30px currentColor;
+}
+.overlay-title.victory { color: #fbbf24; }
+.overlay-title.defeat { color: #ef4444; }
+.overlay-stats { color: #e5e5e5; font-size: 18px; text-align: center; line-height: 1.8; }
+.overlay-btn {
+  padding: 14px 40px; border-radius: 10px; border: 2px solid #d4a847;
+  background: linear-gradient(145deg, #2a1f10, #1a1208);
+  color: #f5d98a; font-size: 18px; font-weight: bold;
+  cursor: pointer; box-shadow: 0 0 20px rgba(212,168,71,0.4);
+  transition: all 0.2s; pointer-events: auto;
+}
+.overlay-btn:hover { transform: scale(1.05); box-shadow: 0 0 30px rgba(212,168,71,0.6); }
+
+/* Start Screen */
+#start-screen {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(ellipse at center, #1a0f2e 0%, #0a0a1a 70%);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 30px; z-index: 400;
+}
+.game-title {
+  font-size: 52px; font-weight: 900; letter-spacing: 3px;
+  background: linear-gradient(135deg, #fbbf24, #f5d98a, #d4a847);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  filter: drop-shadow(0 0 20px rgba(251,191,36,0.6));
+}
+.game-subtitle { font-size: 16px; color: #a78bfa; letter-spacing: 6px; text-transform: uppercase; }
+.start-btn {
+  padding: 18px 60px; border-radius: 14px; border: 3px solid #d4a847;
+  background: linear-gradient(145deg, #3d2a10, #2a1c08);
+  color: #f5d98a; font-size: 22px; font-weight: bold;
+  cursor: pointer; box-shadow: 0 0 30px rgba(212,168,71,0.5);
+  transition: all 0.25s; letter-spacing: 3px;
+}
+.start-btn:hover { transform: scale(1.08); box-shadow: 0 0 50px rgba(212,168,71,0.7); }
+.version-tag { font-size: 12px; color: #555; margin-top: 20px; }
+
+/* Tips / Info */
+.tip-box {
+  background: rgba(139,92,246,0.1); border: 1px solid #8b5cf6; border-radius: 8px;
+  padding: 10px 20px; font-size: 13px; color: #c4b5fd; text-align: center;
+  max-width: 500px; line-height: 1.6;
+}
+
+/* Tower range indicator */
+#tower-range-preview {
+  position: fixed; border-radius: 50%;
+  border: 2px dashed rgba(212,168,71,0.5);
+  background: rgba(212,168,71,0.08);
+  pointer-events: none; display: none; z-index: 150;
+}
+
+/* Kill feed */
+#kill-feed {
+  position: fixed; top: 90px; right: 15px;
+  display: flex; flex-direction: column; gap: 4px; z-index: 200;
+  pointer-events: none;
+}
+.kill-msg {
+  font-size: 12px; color: #fca5a5; text-align: right;
+  animation: fadeSlide 2s forwards;
+}
+@keyframes fadeSlide {
+  0% { opacity: 1; transform: translateX(0); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(20px); }
+}
+</style>
+</head>
+<body>
+
+<!-- Start Screen -->
+<div id="start-screen">
+  <div class="game-title">🎮 瘋狂塔防英雄</div>
+  <div class="game-subtitle">HERO TOWER DEFENSE</div>
+  <button class="start-btn" onclick="startGame()">▶ 開始遊戲</button>
+  <div class="tip-box">
+    💡 建造防禦塔抵禦敵人 │ 召喚英雄助戰 │ 施放法術逆轉戰局<br>
+    🔥 火龍 AoE │ ❄️ 冰凍控場 │ 💚 治療支援
+  </div>
+  <div class="version-tag">v0.1 Core Prototype</div>
+</div>
+
+<!-- Game HUD -->
+<div id="hud-top" style="display:none;">
+  <div class="hud-item">
+    <div class="hud-label">💰 金幣</div>
+    <div class="hud-value" id="gold-display">200</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">💚 生命</div>
+    <div class="hud-value" id="hp-display">20</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">🌊 波次</div>
+    <div class="hud-value" id="wave-display">1</div>
+  </div>
+  <div class="hud-item">
+    <div class="hud-label">⚡ 魔力</div>
+    <div class="hud-value" id="mana-display">100</div>
+  </div>
+</div>
+
+<!-- Wave Info -->
+<div id="wave-info" style="display:none;">
+  <span class="wave-text" id="wave-text">第 1 波來襲</span>
+</div>
+
+<!-- Kill Feed -->
+<div id="kill-feed"></div>
+
+<!-- Action Bar -->
+<div id="action-bar" style="display:none;">
+  <button class="action-btn" id="btn-tower" onclick="toggleTowerPanel()">🏗️</button>
+  <button class="action-btn" id="btn-hero" onclick="toggleHeroPanel()">⚔️</button>
+  <button class="action-btn" id="btn-spell" onclick="toggleSpellPanel()">✨</button>
+  <button class="action-btn" id="btn-wave" onclick="startWave()">▶️</button>
+</div>
+
+<!-- Tower Panel -->
+<div id="tower-panel" class="ui-panel">
+  <div class="tower-card" data-tower="arrow" onclick="selectTower('arrow')">
+    <div class="tower-icon">🏹</div>
+    <div class="tower-name">箭塔</div>
+    <div class="tower-cost">💰50</div>
+  </div>
+  <div class="tower-card" data-tower="cannon" onclick="selectTower('cannon')">
+    <div class="tower-icon">💣</div>
+    <div class="tower-name">炮塔</div>
+    <div class="tower-cost">💰80</div>
+  </div>
+  <div class="tower-card" data-tower="frost" onclick="selectTower('frost')">
+    <div class="tower-icon">❄️</div>
+    <div class="tower-name">冰塔</div>
+    <div class="tower-cost">💰70</div>
+  </div>
+  <div class="tower-card" data-tower="mage" onclick="selectTower('mage')">
+    <div class="tower-icon">🔮</div>
+    <div class="tower-name">法塔</div>
+    <div class="tower-cost">💰100</div>
+  </div>
+</div>
+
+<!-- Spell Panel -->
+<div id="spell-panel" class="ui-panel">
+  <div class="spell-card fire" onclick="castSpell('fire')">
+    <div class="spell-icon">🐉</div>
+    <div class="spell-name">召喚火龍</div>
+    <div class="spell-cd" id="cd-fire">🔥 Ready</div>
+  </div>
+  <div class="spell-card ice" onclick="castSpell('ice')">
+    <div class="spell-icon">🌨️</div>
+    <div class="spell-name">冰凍術</div>
+    <div class="spell-cd" id="cd-ice">❄️ Ready</div>
+  </div>
+  <div class="spell-card heal" onclick="castSpell('heal')">
+    <div class="spell-icon">💚</div>
+    <div class="spell-name">治療術</div>
+    <div class="spell-cd" id="cd-heal">💚 Ready</div>
+  </div>
+</div>
+
+<!-- Hero Panel -->
+<div id="hero-panel" class="ui-panel"></div>
+
+<!-- Game Over Overlay -->
+<div id="game-overlay">
+  <div class="overlay-title" id="overlay-title">勝利!</div>
+  <div class="overlay-stats" id="overlay-stats"></div>
+  <button class="overlay-btn" onclick="restartGame()">🔄 再玩一次</button>
+</div>
+
+<!-- Tower Range Preview -->
+<div id="tower-range-preview"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  GAME ARCHITECTURE (HERO TOWER DEFENSE)
+//  Inspired by Hermes Framework: 五軸系統設計
+// ═══════════════════════════════════════════════════════════════
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 軸1: GAME HUB (遊戲總控制器)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const GameHub = {
+  state: 'MENU',  // MENU | PREPARE | WAVE | GAMEOVER | VICTORY
+  gold: 200,
+  hp: 20,
+  mana: 100,
+  maxMana: 100,
+  manaRegen: 2,
+  wave: 1,
+  maxWaves: 10,
+  score: 0,
+  towers: [],
+  heroes: [],
+  enemies: [],
+  projectiles: [],
+  particles: [],
+  effects: [],
+  towerSlots: [],
+  selectedTowerType: null,
+  selectedHeroId: null,
+  spellCooldowns: { fire: 0, ice: 0, heal: 0 },
+  spellCosts: { fire: 30, ice: 20, heal: 25 },
+  waveInProgress: false,
+  enemiesRemaining: 0,
+  totalKills: 0,
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 軸2: HERO AXIS (英雄系統)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const HERO_DATABASE = [
+  { id: 1, name: '烈焰法師', icon: '🔥', role: 'mage', unlockLevel: 1,
+    baseAtk: 45, baseDef: 10, baseHp: 120, baseSpeed: 1.8, skill: 'fireball' },
+  { id: 2, name: '寒冰射手', icon: '🏹', role: 'dps', unlockLevel: 2,
+    baseAtk: 35, baseDef: 15, baseHp: 150, baseSpeed: 2.0, skill: 'pierce' },
+  { id: 3, name: '聖光騎士', icon: '⚔️', role: 'tank', unlockLevel: 3,
+    baseAtk: 25, baseDef: 50, baseHp: 300, baseSpeed: 1.0, skill: 'shield' },
+  { id: 4, name: '森林德魯伊', icon: '🌿', role: 'healer', unlockLevel: 4,
+    baseAtk: 15, baseDef: 20, baseHp: 180, baseSpeed: 1.5, skill: 'healAura' },
+  { id: 5, name: '暗影刺客', icon: '🗡️', role: 'dps', unlockLevel: 5,
+    baseAtk: 60, baseDef: 8, baseHp: 90, baseSpeed: 3.0, skill: 'backstab' },
+  { id: 6, name: '雷霆法師', icon: '⚡', role: 'mage', unlockLevel: 6,
+    baseAtk: 55, baseDef: 12, baseHp: 130, baseSpeed: 1.6, skill: 'lightning' },
+  { id: 7, name: '金剛護衛', icon: '🛡️', role: 'tank', unlockLevel: 7,
+    baseAtk: 20, baseDef: 70, baseHp: 450, baseSpeed: 0.8, skill: 'fortify' },
+  { id: 8, name: '精靈遊俠', icon: '🏹', role: 'dps', unlockLevel: 8,
+    baseAtk: 40, baseDef: 18, baseHp: 140, baseSpeed: 2.5, skill: 'multishot' },
+  { id: 9, name: '死亡術士', icon: '💀', role: 'mage', unlockLevel: 9,
+    baseAtk: 70, baseDef: 6, baseHp: 100, baseSpeed: 1.4, skill: 'curse' },
+  { id: 10, name: '天使長', icon: '👼', role: 'healer', unlockLevel: 10,
+    baseAtk: 30, baseDef: 35, baseHp: 250, baseSpeed: 1.2, skill: 'resurrect' },
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 軸3: COMBAT AXIS (戰鬥系統)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const TOWER_DATABASE = {
+  arrow:  { name: '箭塔', icon: '🏹', cost: 50, damage: 15, range: 4.5, fireRate: 1.2, color: 0x8b5cf6, projectileColor: 0xa78bfa, projectileSpeed: 8 },
+  cannon: { name: '炮塔', icon: '💣', cost: 80, damage: 40, range: 3.5, fireRate: 0.5, color: 0xf59e0b, projectileColor: 0xfbbf24, projectileSpeed: 5, splash: 1.5 },
+  frost:  { name: '冰塔', icon: '❄️', cost: 70, damage: 10, range: 4.0, fireRate: 0.8, color: 0x3b82f6, projectileColor: 0x60a5fa, projectileSpeed: 6, slow: 0.4 },
+  mage:   { name: '法塔', icon: '🔮', cost: 100, damage: 30, range: 5.0, fireRate: 0.6, color: 0x8b5cf6, projectileColor: 0xc4b5fd, projectileSpeed: 7 },
+};
+
+const ENEMY_TYPES = {
+  goblin:   { name: '哥布林',   hp: 40,  speed: 2.5, reward: 10, color: 0x22c55e, scale: 0.6 },
+  orc:      { name: '獸人戰士', hp: 100, speed: 1.5, reward: 25, color: 0xdc2626, scale: 0.9 },
+  skeleton: { name: '骸骨兵',   hp: 60,  speed: 2.0, reward: 15, color: 0xe5e5e5, scale: 0.7 },
+  troll:    { name: '巨魔',     hp: 200, speed: 1.0, reward: 50, color: 0x7c3aed, scale: 1.2 },
+  dragon:   { name: '幼龍',     hp: 500, speed: 0.8, reward: 150, color: 0xf97316, scale: 1.5 },
+};
+
+const WAVE_CONFIG = [
+  [{ type: 'goblin', count: 5, interval: 1000 }],
+  [{ type: 'goblin', count: 8, interval: 800 }, { type: 'skeleton', count: 3, interval: 1200 }],
+  [{ type: 'orc', count: 4, interval: 1500 }, { type: 'goblin', count: 6, interval: 600 }],
+  [{ type: 'skeleton', count: 8, interval: 700 }, { type: 'orc', count: 5, interval: 1200 }],
+  [{ type: 'troll', count: 2, interval: 3000 }, { type: 'goblin', count: 10, interval: 500 }],
+  [{ type: 'orc', count: 8, interval: 1000 }, { type: 'skeleton', count: 8, interval: 600 }],
+  [{ type: 'troll', count: 4, interval: 2500 }, { type: 'orc', count: 6, interval: 1000 }],
+  [{ type: 'dragon', count: 1, interval: 5000 }, { type: 'troll', count: 3, interval: 2000 }],
+  [{ type: 'dragon', count: 2, interval: 4000 }, { type: 'orc', count: 10, interval: 800 }],
+  [{ type: 'dragon', count: 3, interval: 3000 }, { type: 'troll', count: 5, interval: 1500 }],
+];
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 軸4: RESOURCE AXIS (資源系統)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Resource flow: Enemy Kill → Gold → Tower Build → Kill More Enemies
+function addGold(amount) {
+  GameHub.gold += amount;
+  updateHUD();
+  flashGold();
+}
+
+function spendGold(amount) {
+  if (GameHub.gold >= amount) {
+    GameHub.gold -= amount;
+    updateHUD();
+    return true;
+  }
+  return false;
+}
+
+function loseHP(amount) {
+  GameHub.hp = Math.max(0, GameHub.hp - amount);
+  updateHUD();
+  flashHP();
+  if (GameHub.hp <= 0) gameOver(false);
+}
+
+function addMana(amount) {
+  GameHub.mana = Math.min(GameHub.maxMana, GameHub.mana + amount);
+  updateHUD();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 軸5: SPELL AXIS (法術系統)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function castSpell(type) {
+  if (GameHub.state !== 'WAVE' && GameHub.state !== 'PREPARE') return;
+  if (GameHub.spellCooldowns[type] > 0) return;
+  if (GameHub.mana < GameHub.spellCosts[type]) return;
+
+  GameHub.mana -= GameHub.spellCosts[type];
+  GameHub.spellCooldowns[type] = 15; // 15 sec cooldown
+  updateHUD();
+
+  switch(type) {
+    case 'fire':
+      // 全屏 AoE 火龍
+      playSound('fire');
+      createFireBreathEffect();
+      GameHub.enemies.forEach(e => {
+        if (e.mesh && e.mesh.visible) {
+          e.hp -= 80;
+          createExplosionAt(e.mesh.position, 0xff4500);
+          showDamage(e.mesh.position, 80, '🔥');
+        }
+      });
+      break;
+    case 'ice':
+      // 範圍冰凍
+      playSound('ice');
+      const icePos = getWaveCenter();
+      createIceStormEffect(icePos);
+      GameHub.enemies.forEach(e => {
+        if (e.mesh && e.mesh.visible && e.mesh.position.distanceTo(icePos) < 8) {
+          e.hp -= 25;
+          e.slowedUntil = Date.now() + 3000;
+          createExplosionAt(e.mesh.position, 0x60a5fa);
+          showDamage(e.mesh.position, 25, '❄️');
+        }
+      });
+      break;
+    case 'heal':
+      // 治療英雄
+      playSound('heal');
+      GameHub.heroes.forEach(h => {
+        if (h.mesh && h.mesh.visible && h.hp < h.maxHp) {
+          const healAmt = Math.floor(h.maxHp * 0.4);
+          h.hp = Math.min(h.maxHp, h.hp + healAmt);
+          createHealingEffect(h.mesh.position);
+          showFloatingText(h.mesh.position, '+' + healAmt + ' HP', '#22c55e');
+        }
+      });
+      break;
+  }
+  updateSpellUI();
+}
+
+function updateSpellUI() {
+  ['fire', 'ice', 'heal'].forEach(type => {
+    const cd = GameHub.spellCooldowns[type];
+    const el = document.getElementById('cd-' + type);
+    if (el) el.textContent = cd > 0 ? cd + 's' : (type === 'fire' ? '🔥 Ready' : type === 'ice' ? '❄️ Ready' : '💚 Ready');
+    el?.parentElement?.classList?.toggle('on-cooldown', cd > 0);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// THREE.JS SETUP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let scene, camera, renderer, raycaster, mouse;
+let pathMeshes = [], slotMeshes = [];
+
+function initThreeJS() {
+  scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x0a0a1a, 20, 50);
+
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 22, 14);
+  camera.lookAt(0, 0, 0);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+
+  raycaster = new THREE.Raycaster();
+  mouse = new THREE.Vector2();
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x404060, 0.6);
+  scene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xffeedd, 1.2);
+  sun.position.set(10, 20, 10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 60;
+  sun.shadow.camera.left = -20;
+  sun.shadow.camera.right = 20;
+  sun.shadow.camera.top = 20;
+  sun.shadow.camera.bottom = -20;
+  scene.add(sun);
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(30, 30);
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1525,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // Grid pattern
+  const gridHelper = new THREE.GridHelper(30, 30, 0x2a2040, 0x1a1530);
+  scene.add(gridHelper);
+
+  // Path waypoints (S-curve through the map)
+  const pathPoints = [
+    new THREE.Vector3(-14, 0.1, -8),
+    new THREE.Vector3(-6, 0.1, -8),
+    new THREE.Vector3(-6, 0.1, -2),
+    new THREE.Vector3(6, 0.1, -2),
+    new THREE.Vector3(6, 0.1, 4),
+    new THREE.Vector3(-4, 0.1, 4),
+    new THREE.Vector3(-4, 0.1, 8),
+    new THREE.Vector3(14, 0.1, 8),
+  ];
+
+  // Draw path
+  const pathLine = new THREE.BufferGeometry().setFromPoints(pathPoints);
+  const pathMat = new THREE.LineBasicMaterial({ color: 0x3d2a10, linewidth: 3 });
+  const pathLineObj = new THREE.Line(pathLine, pathMat);
+  scene.add(pathLineObj);
+
+  // Path tiles
+  for (let i = 0; i < pathPoints.length - 1; i++) {
+    const start = pathPoints[i];
+    const end = pathPoints[i + 1];
+    const dir = new THREE.Vector3().subVectors(end, start).normalize();
+    const len = start.distanceTo(end);
+    const mid = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+    const tileGeo = new THREE.BoxGeometry(len + 0.5, 0.15, 2.2);
+    const tileMat = new THREE.MeshStandardMaterial({ color: 0x2d1f0a, roughness: 0.8 });
+    const tile = new THREE.Mesh(tileGeo, tileMat);
+    tile.position.set(mid.x, 0.08, mid.z);
+    tile.lookAt(end.x, 0.08, end.z);
+    tile.receiveShadow = true;
+    scene.add(tile);
+    pathMeshes.push({ start, end, dir, len });
+  }
+
+  // Tower slots (buildable positions)
+  const slotPositions = [
+    [-9, -5], [-3, -5], [3, -5], [9, -5],
+    [-9, 1], [0, 1], [9, 1],
+    [-9, 6], [-3, 6], [3, 6], [9, 6],
+    [-6, -11], [0, -11], [6, -11],
+  ];
+  slotPositions.forEach(([x, z]) => createTowerSlot(x, z));
+
+  window.addEventListener('resize', onResize);
+  renderer.domElement.addEventListener('click', onCanvasClick);
+  renderer.domElement.addEventListener('mousemove', onCanvasMouseMove);
+}
+
+function createTowerSlot(x, z) {
+  const geo = new THREE.CylinderGeometry(1.1, 1.1, 0.2, 8);
+  const mat = new THREE.MeshStandardMaterial({ color: 0x3d2a10, emissive: 0x1a0f05, roughness: 0.7 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, 0.1, z);
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  // Ring
+  const ringGeo = new THREE.TorusGeometry(1.0, 0.06, 8, 24);
+  const ringMat = new THREE.MeshStandardMaterial({ color: 0xd4a847, emissive: 0x3d2a10, roughness: 0.3, metalness: 0.8 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.rotation.x = Math.PI / 2;
+  ring.position.set(x, 0.22, z);
+  scene.add(ring);
+
+  const slotObj = { x, z, mesh, ring, occupied: false };
+  slotMeshes.push(slotObj);
+  GameHub.towerSlots.push(slotObj);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INPUT HANDLING
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function onCanvasClick(event) {
+  if (GameHub.state === 'MENU' || GameHub.state === 'GAMEOVER') return;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  // Check tower slots
+  const slotHits = raycaster.intersectObjects(slotMeshes.map(s => s.mesh));
+  if (slotHits.length > 0) {
+    const hitSlot = slotMeshes.find(s => s.mesh === slotHits[0].object);
+    if (hitSlot && !hitSlot.occupied && GameHub.selectedTowerType) {
+      buildTower(hitSlot, GameHub.selectedTowerType);
+    }
+  }
+}
+
+function onCanvasMouseMove(event) {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // Update tower range preview
+  const preview = document.getElementById('tower-range-preview');
+  if (GameHub.selectedTowerType) {
+    raycaster.setFromCamera(mouse, camera);
+    const hits = raycaster.intersectObjects(slotMeshes.map(s => s.mesh));
+    if (hits.length > 0) {
+      const slot = slotMeshes.find(s => s.mesh === hits[0].object);
+      if (slot && !slot.occupied) {
+        const range = TOWER_DATABASE[GameHub.selectedTowerType].range;
+        const size = range * 2;
+        preview.style.display = 'block';
+        preview.style.width = size + 'em';
+        preview.style.height = size + 'em';
+        preview.style.left = (event.clientX - size/2 * 8) + 'px';
+        preview.style.top = (event.clientY - size/2 * 8) + 'px';
+      } else {
+        preview.style.display = 'none';
+      }
+    } else {
+      preview.style.display = 'none';
+    }
+  }
+}
+
+function buildTower(slot, type) {
+  const tdb = TOWER_DATABASE[type];
+  if (!spendGold(tdb.cost)) return;
+
+  const geo = new THREE.CylinderGeometry(0.6, 0.8, 2.5, 8);
+  const mat = new THREE.MeshStandardMaterial({ color: tdb.color, roughness: 0.3, metalness: 0.7 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(slot.x, 1.35, slot.z);
+  mesh.castShadow = true;
+  scene.add(mesh);
+
+  // Top ornament
+  const topGeo = new THREE.OctahedronGeometry(0.5);
+  const topMat = new THREE.MeshStandardMaterial({ color: tdb.projectileColor, emissive: tdb.projectileColor, emissiveIntensity: 0.5, metalness: 0.9 });
+  const top = new THREE.Mesh(topGeo, topMat);
+  top.position.set(slot.x, 2.9, slot.z);
+  scene.add(top);
+
+  // Glow ring
+  const glowGeo = new THREE.TorusGeometry(0.9, 0.08, 8, 24);
+  const glowMat = new THREE.MeshStandardMaterial({ color: tdb.color, emissive: tdb.color, emissiveIntensity: 0.8 });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.rotation.x = Math.PI / 2;
+  glow.position.set(slot.x, 0.25, slot.z);
+  scene.add(glow);
+
+  const tower = {
+    type,
+    x: slot.x,
+    z: slot.z,
+    mesh,
+    top,
+    glow,
+    lastFire: 0,
+    damage: tdb.damage,
+    range: tdb.range,
+    fireRate: tdb.fireRate,
+    projectileColor: tdb.projectileColor,
+    projectileSpeed: tdb.projectileSpeed,
+    splash: tdb.splash || 0,
+    slow: tdb.slow || 0,
+  };
+
+  GameHub.towers.push(tower);
+  slot.occupied = true;
+  slot.mesh.material.color.setHex(0x2a1a05);
+  slot.ring.material.color.setHex(0x22c55e);
+  slot.ring.material.emissive.setHex(0x115522);
+  playSound('build');
+  createBuildEffect(slot.x, slot.z);
+}
+
+function onCanvasClick_PlaceHero(event) {
+  // Hero placement on click
+  if (!GameHub.selectedHeroId) return;
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const intersectPoint = new THREE.Vector3();
+  raycaster.ray.intersectPlane(plane, intersectPoint);
+  if (intersectPoint) {
+    deployHero(GameHub.selectedHeroId, intersectPoint.x, intersectPoint.z);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENEMY SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let pathProgress = {}; // track each enemy's path progress
+
+function spawnEnemy(type) {
+  const etype = ENEMY_TYPES[type];
+  const start = pathMeshes[0].start.clone();
+  start.y = 0.5 + etype.scale * 0.3;
+
+  const geo = new THREE.SphereGeometry(etype.scale * 0.5, 12, 8);
+  const mat = new THREE.MeshStandardMaterial({ color: etype.color, roughness: 0.4, metalness: 0.3 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(start);
+  mesh.castShadow = true;
+  scene.add(mesh);
+
+  // Eyes
+  const eyeGeo = new THREE.SphereGeometry(0.1, 6, 4);
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
+  const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+  const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+  eyeL.position.set(-0.12, 0.1, 0.4);
+  eyeR.position.set(0.12, 0.1, 0.4);
+  mesh.add(eyeL);
+  mesh.add(eyeR);
+
+  const enemy = {
+    type,
+    hp: etype.hp,
+    maxHp: etype.hp,
+    speed: etype.speed,
+    reward: etype.reward,
+    scale: etype.scale,
+    mesh,
+    pathIdx: 0,
+    pathT: 0,
+    slowedUntil: 0,
+    burning: false,
+  };
+
+  pathProgress[enemy.mesh.uuid] = { pathIdx: 0, pathT: 0 };
+  GameHub.enemies.push(enemy);
+  GameHub.enemiesRemaining++;
+}
+
+function updateEnemies(dt) {
+  for (let i = GameHub.enemies.length - 1; i >= 0; i--) {
+    const e = GameHub.enemies[i];
+    if (e.hp <= 0) continue;
+
+    let speed = e.speed;
+    if (Date.now() < e.slowedUntil) {
+      speed *= 0.3; // slowed by frost tower
+      e.mesh.material.color.setHex(0x60a5fa); // blue tint
+    } else {
+      e.mesh.material.color.setHex(ENEMY_TYPES[e.type].color);
+    }
+
+    const key = e.mesh.uuid;
+    if (!pathProgress[key]) pathProgress[key] = { pathIdx: 0, pathT: 0 };
+    const prog = pathProgress[key];
+
+    prog.pathT += speed * dt * 0.1;
+
+    while (prog.pathT >= 1 && prog.pathIdx < pathMeshes.length - 1) {
+      prog.pathT -= 1;
+      prog.pathIdx++;
+    }
+
+    if (prog.pathIdx >= pathMeshes.length - 1 && prog.pathT >= 1) {
+      // Enemy reached the end
+      loseHP(1);
+      scene.remove(e.mesh);
+      GameHub.enemies.splice(i, 1);
+      GameHub.enemiesRemaining--;
+      continue;
+    }
+
+    const seg = pathMeshes[prog.pathIdx];
+    if (seg) {
+      const pos = new THREE.Vector3().lerpVectors(seg.start, seg.end, prog.pathT);
+      pos.y = 0.5 + e.scale * 0.3;
+      e.mesh.position.copy(pos);
+
+      // Face direction of travel
+      if (prog.pathT < 0.9) {
+        const nextSeg = pathMeshes[Math.min(prog.pathIdx + 1, pathMeshes.length - 1)];
+        if (nextSeg) {
+          const dir = new THREE.Vector3().subVectors(nextSeg.start, seg.end).normalize();
+          e.mesh.lookAt(e.mesh.position.clone().add(dir));
+        }
+      }
+
+      // Bobbing
+      e.mesh.position.y += Math.sin(Date.now() * 0.005 + i) * 0.08;
+    }
+
+    // HP bar
+    updateEnemyHPBar(e);
+  }
+}
+
+function updateEnemyHPBar(e) {
+  if (!e.hpBar) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64; canvas.height = 8;
+    e.hpBar = canvas;
+  }
+  const ctx = e.hpBar.getContext('2d');
+  ctx.clearRect(0, 0, 64, 8);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fillRect(0, 0, 64, 8);
+  const pct = e.hp / e.maxHp;
+  ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#f59e0b' : '#ef4444';
+  ctx.fillRect(0, 0, 64 * pct, 8);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TOWER COMBAT SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateTowers(dt) {
+  const now = Date.now();
+  GameHub.towers.forEach(tower => {
+    if (now - tower.lastFire < tower.fireRate * 1000) return;
+
+    // Find target
+    let target = null;
+    let minDist = Infinity;
+    GameHub.enemies.forEach(e => {
+      if (e.hp <= 0) return;
+      const dist = Math.sqrt((e.mesh.position.x - tower.x) ** 2 + (e.mesh.position.z - tower.z) ** 2);
+      if (dist < tower.range && dist < minDist) {
+        minDist = dist;
+        target = e;
+      }
+    });
+
+    if (target) {
+      tower.lastFire = now;
+      fireProjectile(tower, target);
+
+      // Rotate top to face target
+      const dx = target.mesh.position.x - tower.x;
+      const dz = target.mesh.position.z - tower.z;
+      tower.top.lookAt(target.mesh.position.x, tower.top.position.y, target.mesh.position.z);
+    }
+
+    // Animate glow
+    tower.glow.material.emissiveIntensity = 0.5 + Math.sin(now * 0.003) * 0.3;
+  });
+}
+
+function fireProjectile(tower, target) {
+  const geo = new THREE.SphereGeometry(0.18, 8, 6);
+  const mat = new THREE.MeshStandardMaterial({
+    color: tower.projectileColor,
+    emissive: tower.projectileColor,
+    emissiveIntensity: 1.0,
+    roughness: 0.1,
+    metalness: 0.9,
+  });
+  const proj = new THREE.Mesh(geo, mat);
+  proj.position.set(tower.x, 2.2, tower.z);
+  scene.add(proj);
+
+  const projData = {
+    mesh: proj,
+    target,
+    tower,
+    speed: tower.projectileSpeed,
+    damage: tower.damage,
+    splash: tower.splash,
+    slow: tower.slow,
+    color: tower.projectileColor,
+  };
+  GameHub.projectiles.push(projData);
+  playSound('shoot');
+}
+
+function updateProjectiles(dt) {
+  for (let i = GameHub.projectiles.length - 1; i >= 0; i--) {
+    const p = GameHub.projectiles[i];
+    if (!p.target || p.target.hp <= 0) {
+      scene.remove(p.mesh);
+      GameHub.projectiles.splice(i, 1);
+      continue;
+    }
+
+    const dir = new THREE.Vector3().subVectors(p.target.mesh.position, p.mesh.position).normalize();
+    p.mesh.position.addScaledVector(dir, p.speed * dt * 0.5);
+
+    if (p.mesh.position.distanceTo(p.target.mesh.position) < 0.5) {
+      // Hit!
+      p.target.hp -= p.damage;
+
+      if (p.splash > 0) {
+        // Splash damage
+        GameHub.enemies.forEach(e => {
+          if (e === p.target || e.hp <= 0) return;
+          const dist = e.mesh.position.distanceTo(p.target.mesh.position);
+          if (dist < p.splash) {
+            e.hp -= p.damage * 0.5 * (1 - dist / p.splash);
+            if (p.slow > 0) e.slowedUntil = Date.now() + 2000;
+          }
+        });
+        createExplosionAt(p.target.mesh.position, p.color);
+      }
+
+      if (p.slow > 0) {
+        p.target.slowedUntil = Date.now() + 3000;
+      }
+
+      showDamage(p.target.mesh.position, p.damage, null);
+      scene.remove(p.mesh);
+      GameHub.projectiles.splice(i, 1);
+
+      // Check kill
+      if (p.target.hp <= 0) {
+        killEnemy(p.target);
+      }
+    }
+  }
+}
+
+function killEnemy(enemy) {
+  addGold(enemy.reward);
+  GameHub.score += enemy.reward * 10;
+  GameHub.totalKills++;
+  GameHub.enemiesRemaining--;
+
+  createDeathEffect(enemy.mesh.position.clone(), ENEMY_TYPES[enemy.type].color);
+  showKillFeed(enemy.type);
+
+  scene.remove(enemy.mesh);
+  const idx = GameHub.enemies.indexOf(enemy);
+  if (idx >= 0) GameHub.enemies.splice(idx, 1);
+
+  playSound('kill');
+  updateHUD();
+
+  // Check wave clear
+  if (GameHub.enemiesRemaining <= 0 && GameHub.waveInProgress) {
+    waveCleared();
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HERO SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function deployHero(heroId, x, z) {
+  const heroData = HERO_DATABASE.find(h => h.id === heroId);
+  if (!heroData) return;
+
+  const geo = new THREE.CylinderGeometry(0.5, 0.6, 1.8, 8);
+  const roleColors = { mage: 0x8b5cf6, dps: 0xef4444, tank: 0xf59e0b, healer: 0x22c55e };
+  const mat = new THREE.MeshStandardMaterial({ color: roleColors[heroData.role], roughness: 0.3, metalness: 0.6 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, 1.0, z);
+  mesh.castShadow = true;
+  scene.add(mesh);
+
+  // Aura ring
+  const auraGeo = new THREE.TorusGeometry(0.8, 0.06, 8, 24);
+  const auraMat = new THREE.MeshStandardMaterial({ color: roleColors[heroData.role], emissive: roleColors[heroData.role], emissiveIntensity: 0.7 });
+  const aura = new THREE.Mesh(auraGeo, auraMat);
+  aura.rotation.x = Math.PI / 2;
+  aura.position.copy(mesh.position);
+  aura.position.y = 0.15;
+  scene.add(aura);
+
+  const hero = {
+    ...heroData,
+    hp: heroData.baseHp,
+    maxHp: heroData.baseHp,
+    atk: heroData.baseAtk,
+    def: heroData.baseDef,
+    speed: heroData.baseSpeed,
+    x, z,
+    mesh,
+    aura,
+    lastSkill: 0,
+    skillCooldown: 5,
+  };
+  GameHub.heroes.push(hero);
+  playSound('heroDeploy');
+  createBuildEffect(x, z);
+}
+
+function updateHeroes(dt) {
+  const now = Date.now();
+  GameHub.heroes.forEach(hero => {
+    if (hero.hp <= 0) return;
+
+    // Find nearest enemy
+    let nearest = null;
+    let minDist = Infinity;
+    GameHub.enemies.forEach(e => {
+      if (e.hp <= 0) return;
+      const d = hero.mesh.position.distanceTo(e.mesh.position);
+      if (d < minDist) { minDist = d; nearest = e; }
+    });
+
+    if (nearest && minDist < 6) {
+      // Move toward enemy
+      const dir = new THREE.Vector3().subVectors(nearest.mesh.position, hero.mesh.position).normalize();
+      hero.mesh.position.addScaledVector(dir, hero.speed * dt * 0.15);
+      hero.mesh.position.y = 1.0 + Math.sin(now * 0.004) * 0.1;
+      hero.mesh.lookAt(nearest.mesh.position.x, hero.mesh.position.y, nearest.mesh.position.z);
+      hero.aura.position.copy(hero.mesh.position);
+      hero.aura.position.y = 0.15;
+
+      // Auto-attack
+      if (now - hero.lastSkill > hero.skillCooldown * 1000) {
+        hero.lastSkill = now;
+        nearest.hp -= hero.atk;
+        createHitEffect(nearest.mesh.position.clone());
+        showDamage(nearest.mesh.position, hero.atk, hero.icon);
+        if (nearest.hp <= 0) killEnemy(nearest);
+      }
+    }
+
+    // Animate aura
+    hero.aura.material.emissiveIntensity = 0.5 + Math.sin(now * 0.005) * 0.4;
+    hero.aura.rotation.z += dt * 0.5;
+  });
+}
+
+function updateHeroHPBars() {
+  GameHub.heroes.forEach(hero => {
+    if (!hero.hpBar || !hero.hpBar.parent) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 80; canvas.height = 10;
+      const ctx = canvas.getContext('2d');
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+      sprite.position.set(hero.x, hero.z > 0 ? 2.2 : 2.2, hero.z);
+      sprite.scale.set(1.5, 0.25, 1);
+      hero.mesh.add(sprite);
+      hero.hpBar = { canvas, ctx, sprite };
+    }
+    const ctx = hero.hpBar.ctx;
+    const pct = hero.hp / hero.maxHp;
+    ctx.clearRect(0, 0, 80, 10);
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, 80, 10);
+    ctx.fillStyle = pct > 0.5 ? '#22c55e' : pct > 0.25 ? '#f59e0b' : '#ef4444';
+    ctx.fillRect(0, 0, 80 * pct, 10);
+    hero.hpBar.sprite.material.map.needsUpdate = true;
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WAVE SYSTEM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function startWave() {
+  if (GameHub.waveInProgress) return;
+  if (GameHub.state === 'MENU' || GameHub.state === 'GAMEOVER') return;
+
+  GameHub.state = 'WAVE';
+  GameHub.waveInProgress = true;
+
+  const waveIdx = Math.min(GameHub.wave - 1, WAVE_CONFIG.length - 1);
+  const waveData = WAVE_CONFIG[waveIdx];
+
+  let totalEnemies = 0;
+  waveData.forEach(group => totalEnemies += group.count);
+  GameHub.enemiesRemaining = 0;
+
+  let delay = 500;
+  waveData.forEach(group => {
+    for (let i = 0; i < group.count; i++) {
+      setTimeout(() => {
+        if (GameHub.state === 'GAMEOVER') return;
+        spawnEnemy(group.type);
+      }, delay + i * group.interval);
+    }
+    delay += group.count * group.interval + 500;
+  });
+
+  GameHub.enemiesRemaining = totalEnemies;
+  document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波來襲！`;
+  playSound('waveStart');
+}
+
+function waveCleared() {
+  GameHub.waveInProgress = false;
+  GameHub.gold += 50 + GameHub.wave * 10; // wave completion bonus
+  GameHub.mana = Math.min(GameHub.maxMana, GameHub.mana + 30);
+  updateHUD();
+
+  if (GameHub.wave >= GameHub.maxWaves) {
+    gameOver(true);
+  } else {
+    GameHub.wave++;
+    updateHUD();
+    document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波準備中...`;
+    setTimeout(() => {
+      if (GameHub.state === 'WAVE') {
+        GameHub.state = 'PREPARE';
+        document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波準備中`;
+      }
+    }, 2000);
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VISUAL EFFECTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function createExplosionAt(pos, color) {
+  const geo = new THREE.SphereGeometry(0.3, 8, 6);
+  const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.0, transparent: true, opacity: 0.8 });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(pos);
+  scene.add(mesh);
+  GameHub.effects.push({ mesh, type: 'explosion', life: 0.4, maxLife: 0.4, color });
+}
+
+function createDeathEffect(pos, color) {
+  for (let i = 0; i < 6; i++) {
+    const geo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5 });
+    const shard = new THREE.Mesh(geo, mat);
+    shard.position.copy(pos);
+    shard.userData.velocity = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.3,
+      Math.random() * 0.3 + 0.1,
+      (Math.random() - 0.5) * 0.3
+    );
+    scene.add(shard);
+    GameHub.particles.push({ mesh: shard, life: 1.0, maxLife: 1.0 });
+  }
+}
+
+function createBuildEffect(x, z) {
+  for (let i = 0; i < 12; i++) {
+    const geo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xd4a847, emissive: 0xf5d98a, emissiveIntensity: 0.8 });
+    const p = new THREE.Mesh(geo, mat);
+    const angle = (i / 12) * Math.PI * 2;
+    p.position.set(x, 0.5, z);
+    p.userData.velocity = new THREE.Vector3(Math.cos(angle) * 0.1, 0.15, Math.sin(angle) * 0.1);
+    scene.add(p);
+    GameHub.particles.push({ mesh: p, life: 0.8, maxLife: 0.8 });
+  }
+}
+
+function createFireBreathEffect() {
+  const center = getWaveCenter();
+  for (let i = 0; i < 30; i++) {
+    const geo = new THREE.SphereGeometry(0.25, 6, 4);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xff6600, emissiveIntensity: 1.0, transparent: true, opacity: 0.9 });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.copy(center);
+    p.position.y = 1 + Math.random() * 2;
+    const angle = Math.random() * Math.PI * 2;
+    const radius = Math.random() * 6;
+    p.userData.target = new THREE.Vector3(
+      center.x + Math.cos(angle) * radius,
+      1 + Math.random() * 2,
+      center.z + Math.sin(angle) * radius
+    );
+    p.userData.start = p.position.clone();
+    p.userData.t = 0;
+    scene.add(p);
+    GameHub.effects.push({ mesh: p, type: 'fireBreath', life: 1.5, maxLife: 1.5 });
+  }
+}
+
+function createIceStormEffect(center) {
+  for (let i = 0; i < 20; i++) {
+    const geo = new THREE.OctahedronGeometry(0.3);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x60a5fa, emissive: 0x93c5fd, emissiveIntensity: 0.7, transparent: true, opacity: 0.8 });
+    const p = new THREE.Mesh(geo, mat);
+    const angle = (i / 20) * Math.PI * 2;
+    const radius = Math.random() * 7;
+    p.position.set(center.x + Math.cos(angle) * radius, 4, center.z + Math.sin(angle) * radius);
+    p.userData.target = center.clone();
+    p.userData.target.y = 0.5;
+    scene.add(p);
+    GameHub.effects.push({ mesh: p, type: 'iceStorm', life: 1.5, maxLife: 1.5 });
+  }
+}
+
+function createHealingEffect(pos) {
+  for (let i = 0; i < 8; i++) {
+    const geo = new THREE.SphereGeometry(0.15, 6, 4);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x4ade80, emissiveIntensity: 1.0, transparent: true });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.set(pos.x, 1, pos.z);
+    p.userData.startY = 1;
+    scene.add(p);
+    GameHub.effects.push({ mesh: p, type: 'heal', life: 1.0, maxLife: 1.0 });
+  }
+}
+
+function createHitEffect(pos) {
+  const geo = new THREE.RingGeometry(0.1, 0.25, 8);
+  const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.0, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.position.copy(pos);
+  ring.rotation.x = Math.PI / 2;
+  scene.add(ring);
+  GameHub.effects.push({ mesh: ring, type: 'hitRing', life: 0.3, maxLife: 0.3 });
+}
+
+function updateEffects(dt) {
+  for (let i = GameHub.effects.length - 1; i >= 0; i--) {
+    const e = GameHub.effects[i];
+    e.life -= dt;
+    const t = 1 - e.life / e.maxLife;
+
+    if (e.type === 'explosion') {
+      const s = 1 + t * 3;
+      e.mesh.scale.set(s, s, s);
+      e.mesh.material.opacity = 1 - t;
+    } else if (e.type === 'fireBreath') {
+      e.mesh.position.lerpVectors(e.mesh.userData.start, e.mesh.userData.target, t);
+      e.mesh.material.opacity = 1 - t;
+      e.mesh.material.emissiveIntensity = 2 - t * 2;
+    } else if (e.type === 'iceStorm') {
+      e.mesh.position.lerpVectors(e.mesh.position, e.mesh.userData.target, 0.1);
+      e.mesh.rotation.x += dt * 3;
+      e.mesh.rotation.y += dt * 2;
+      e.mesh.material.opacity = 1 - t;
+    } else if (e.type === 'heal') {
+      e.mesh.position.y += dt * 2;
+      e.mesh.material.opacity = 1 - t;
+    } else if (e.type === 'hitRing') {
+      const s = 1 + t * 2;
+      e.mesh.scale.set(s, s, 1);
+      e.mesh.material.opacity = 1 - t;
+    }
+
+    if (e.life <= 0) {
+      scene.remove(e.mesh);
+      GameHub.effects.splice(i, 1);
+    }
+  }
+
+  for (let i = GameHub.particles.length - 1; i >= 0; i--) {
+    const p = GameHub.particles[i];
+    p.life -= dt;
+    if (p.mesh.userData.velocity) {
+      p.mesh.position.add(p.mesh.userData.velocity);
+      p.mesh.userData.velocity.y -= dt * 0.3; // gravity
+    }
+    if (p.life <= 0) {
+      scene.remove(p.mesh);
+      GameHub.particles.splice(i, 1);
+    }
+  }
+}
+
+function getWaveCenter() {
+  if (GameHub.enemies.length === 0) return new THREE.Vector3(0, 1, 0);
+  let sum = new THREE.Vector3();
+  GameHub.enemies.forEach(e => sum.add(e.mesh.position));
+  return sum.divideScalar(GameHub.enemies.length);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UI EFFECTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function showDamage(pos, amount, icon) {
+  const vector = pos.clone().project(camera);
+  const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+  const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;left:${x}px;top:${y}px;font-size:18px;font-weight:bold;
+    color:#fff;text-shadow:0 0 6px #000,0 0 10px #000;
+    pointer-events:none;z-index:250;transition:all 0.8s ease-out;
+    transform:translateY(0);opacity:1;`;
+  el.textContent = icon ? `${icon}-${Math.floor(amount)}` : `-${Math.floor(amount)}`;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => {
+    el.style.transform = 'translateY(-40px)';
+    el.style.opacity = '0';
+  });
+  setTimeout(() => el.remove(), 900);
+}
+
+function showFloatingText(pos, text, color) {
+  const vector = pos.clone().project(camera);
+  const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+  const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+  const el = document.createElement('div');
+  el.style.cssText = `position:fixed;left:${x}px;top:${y}px;font-size:22px;font-weight:900;
+    color:${color};text-shadow:0 0 8px ${color};pointer-events:none;z-index:250;
+    transition:all 1s ease-out;`;
+  el.textContent = text;
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.transform = 'translateY(-60px)'; el.style.opacity = '0'; });
+  setTimeout(() => el.remove(), 1100);
+}
+
+function showKillFeed(type) {
+  const feed = document.getElementById('kill-feed');
+  const msg = document.createElement('div');
+  msg.className = 'kill-msg';
+  msg.textContent = `⚔️ ${ENEMY_TYPES[type].name} 被消滅！`;
+  feed.appendChild(msg);
+  setTimeout(() => msg.remove(), 2000);
+}
+
+let goldFlashTimer = 0;
+function flashGold() { goldFlashTimer = 0.3; }
+function flashHP() { /* red screen flash */ }
+
+function updateHUD() {
+  document.getElementById('gold-display').textContent = GameHub.gold;
+  document.getElementById('hp-display').textContent = GameHub.hp;
+  document.getElementById('wave-display').textContent = GameHub.wave;
+  document.getElementById('mana-display').textContent = Math.floor(GameHub.mana);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PANEL TOGGLES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleTowerPanel() {
+  const p = document.getElementById('tower-panel');
+  const shown = p.style.display === 'flex';
+  p.style.display = shown ? 'none' : 'flex';
+  document.getElementById('hero-panel').style.display = 'none';
+  document.getElementById('spell-panel').style.display = 'none';
+  GameHub.selectedHeroId = null;
+  document.querySelectorAll('.tower-card').forEach(c => c.classList.remove('selected'));
+  GameHub.selectedTowerType = null;
+  document.getElementById('tower-range-preview').style.display = 'none';
+  if (!shown) renderer.domElement.removeEventListener('click', onCanvasClick_PlaceHero);
+}
+
+function toggleHeroPanel() {
+  const p = document.getElementById('hero-panel');
+  const shown = p.style.display === 'flex';
+  p.style.display = shown ? 'none' : 'flex';
+  document.getElementById('tower-panel').style.display = 'none';
+  document.getElementById('spell-panel').style.display = 'none';
+  GameHub.selectedTowerType = null;
+  document.getElementById('tower-range-preview').style.display = 'none';
+
+  if (!shown) {
+    renderHeroPanel();
+    renderer.domElement.addEventListener('click', onCanvasClick_PlaceHero);
+  } else {
+    renderer.domElement.removeEventListener('click', onCanvasClick_PlaceHero);
+  }
+  GameHub.selectedHeroId = null;
+  document.querySelectorAll('.hero-card').forEach(c => c.classList.remove('selected'));
+}
+
+function toggleSpellPanel() {
+  const p = document.getElementById('spell-panel');
+  p.style.display = p.style.display === 'flex' ? 'none' : 'flex';
+  document.getElementById('tower-panel').style.display = 'none';
+  document.getElementById('hero-panel').style.display = 'none';
+  GameHub.selectedTowerType = null;
+  GameHub.selectedHeroId = null;
+  document.getElementById('tower-range-preview').style.display = 'none';
+  renderer.domElement.removeEventListener('click', onCanvasClick_PlaceHero);
+  document.querySelectorAll('.tower-card, .hero-card').forEach(c => c.classList.remove('selected'));
+}
+
+function selectTower(type) {
+  GameHub.selectedTowerType = type;
+  document.querySelectorAll('.tower-card').forEach(c => c.classList.toggle('selected', c.dataset.tower === type));
+  renderer.domElement.removeEventListener('click', onCanvasClick_PlaceHero);
+}
+
+function renderHeroPanel() {
+  const panel = document.getElementById('hero-panel');
+  panel.innerHTML = '';
+  HERO_DATABASE.forEach(h => {
+    const unlocked = GameHub.wave >= h.unlockLevel || h.unlockLevel === 1;
+    const div = document.createElement('div');
+    div.className = `hero-card ${h.role}${unlocked ? '' : ' locked'}`;
+    div.innerHTML = `
+      <div class="hero-icon">${h.icon}</div>
+      <div class="hero-name">${h.name}</div>
+      <div class="hero-level">Lv.${h.unlockLevel}</div>
+    `;
+    if (unlocked) {
+      div.onclick = () => {
+        GameHub.selectedHeroId = h.id;
+        document.querySelectorAll('.hero-card').forEach(c => c.classList.remove('selected'));
+        div.classList.add('selected');
+      };
+    }
+    panel.appendChild(div);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AUDIO (Web Audio API)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let audioCtx;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playSound(type) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+
+    switch(type) {
+      case 'shoot': osc.frequency.setValueAtTime(800, ctx.currentTime); break;
+      case 'kill': osc.frequency.setValueAtTime(400, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.15); break;
+      case 'build': osc.frequency.setValueAtTime(300, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.1); break;
+      case 'waveStart': osc.frequency.setValueAtTime(200, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3); break;
+      case 'heroDeploy': osc.frequency.setValueAtTime(500, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.15); break;
+      case 'fire': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 0.4); break;
+      case 'ice': osc.type = 'sine'; osc.frequency.setValueAtTime(1200, ctx.currentTime); osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.3); break;
+      case 'heal': osc.type = 'sine'; osc.frequency.setValueAtTime(600, ctx.currentTime); osc.frequency.setValueAtTime(800, ctx.currentTime + 0.1); osc.frequency.setValueAtTime(1000, ctx.currentTime + 0.2); break;
+      default: osc.frequency.setValueAtTime(440, ctx.currentTime);
+    }
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.25);
+  } catch(e) {}
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GAME FLOW
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function startGame() {
+  document.getElementById('start-screen').style.display = 'none';
+  document.getElementById('hud-top').style.display = 'flex';
+  document.getElementById('wave-info').style.display = 'block';
+  document.getElementById('action-bar').style.display = 'flex';
+  document.getElementById('spell-panel').style.display = 'flex';
+
+  GameHub.state = 'PREPARE';
+  document.getElementById('wave-text').textContent = '第 1 波準備中';
+
+  initThreeJS();
+  updateHUD();
+  animate();
+}
+
+function gameOver(victory) {
+  GameHub.state = victory ? 'VICTORY' : 'GAMEOVER';
+  GameHub.waveInProgress = false;
+
+  const overlay = document.getElementById('game-overlay');
+  const title = document.getElementById('overlay-title');
+  const stats = document.getElementById('overlay-stats');
+
+  title.textContent = victory ? '🎉 勝利!' : '💀 失敗...';
+  title.className = 'overlay-title ' + (victory ? 'victory' : 'defeat');
+  stats.innerHTML = `
+    波次: ${GameHub.wave} / ${GameHub.maxWaves}<br>
+    總殺敵: ${GameHub.totalKills}<br>
+    總得分: ${GameHub.score}<br>
+    剩餘金幣: ${GameHub.gold}
+  `;
+  overlay.classList.add('active');
+}
+
+function restartGame() {
+  // Clear scene
+  GameHub.towers.forEach(t => { scene.remove(t.mesh); scene.remove(t.top); scene.remove(t.glow); });
+  GameHub.heroes.forEach(h => { scene.remove(h.mesh); scene.remove(h.aura); });
+  GameHub.enemies.forEach(e => scene.remove(e.mesh));
+  GameHub.projectiles.forEach(p => scene.remove(p.mesh));
+  GameHub.effects.forEach(e => scene.remove(e.mesh));
+  GameHub.particles.forEach(p => scene.remove(p.mesh));
+
+  // Reset state
+  Object.assign(GameHub, {
+    state: 'PREPARE', gold: 200, hp: 20, mana: 100, wave: 1,
+    score: 0, towers: [], heroes: [], enemies: [], projectiles: [],
+    effects: [], particles: [], towerSlots: [], selectedTowerType: null,
+    selectedHeroId: null, spellCooldowns: { fire: 0, ice: 0, heal: 0 },
+    waveInProgress: false, enemiesRemaining: 0, totalKills: 0,
+  });
+
+  // Reset slot meshes
+  slotMeshes.forEach(s => {
+    s.occupied = false;
+    s.mesh.material.color.setHex(0x3d2a10);
+    s.ring.material.color.setHex(0xd4a847);
+    s.ring.material.emissive.setHex(0x000000);
+  });
+  pathProgress = {};
+
+  document.getElementById('game-overlay').classList.remove('active');
+  document.getElementById('tower-panel').style.display = 'none';
+  document.getElementById('hero-panel').style.display = 'none';
+  document.getElementById('spell-panel').style.display = 'none';
+  document.getElementById('wave-text').textContent = '第 1 波準備中';
+  updateHUD();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MAIN LOOP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+let lastTime = 0;
+function animate(time = 0) {
+  requestAnimationFrame(animate);
+
+  const dt = Math.min((time - lastTime) / 1000, 0.1);
+  lastTime = time;
+
+  if (GameHub.state === 'WAVE' || GameHub.state === 'PREPARE') {
+    // Mana regen
+    GameHub.mana = Math.min(GameHub.maxMana, GameHub.mana + GameHub.manaRegen * dt);
+    updateHUD();
+
+    // Spell cooldowns
+    ['fire', 'ice', 'heal'].forEach(s => {
+      if (GameHub.spellCooldowns[s] > 0) {
+        GameHub.spellCooldowns[s] = Math.max(0, GameHub.spellCooldowns[s] - dt);
+      }
+    });
+    updateSpellUI();
+
+    // Game logic
+    updateEnemies(dt);
+    updateTowers(dt);
+    updateProjectiles(dt);
+    updateHeroes(dt);
+    updateHeroHPBars();
+    updateEffects(dt);
+
+    // Gold flash
+    if (goldFlashTimer > 0) {
+      goldFlashTimer -= dt;
+      document.getElementById('gold-display').style.color = goldFlashTimer > 0 ? '#fbbf24' : '#e9d5ff';
+    }
+
+    // Animate slot rings
+    slotMeshes.forEach((s, i) => {
+      if (!s.occupied) {
+        s.ring.material.emissiveIntensity = 0.2 + Math.sin(time * 0.002 + i) * 0.2;
+      }
+    });
+  }
+
+  renderer.render(scene, camera);
+}
+
+// Start on load
+window.startGame = startGame;
+window.restartGame = restartGame;
+window.toggleTowerPanel = toggleTowerPanel;
+window.toggleHeroPanel = toggleHeroPanel;
+window.toggleSpellPanel = toggleSpellPanel;
+window.selectTower = selectTower;
+window.castSpell = castSpell;
+window.startWave = startWave;
+window.deployHero = deployHero;
+</script>
+</body>
+</html>
