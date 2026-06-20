@@ -510,7 +510,7 @@ function updateSpellUI() {
 // THREE.JS SETUP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 let scene, camera, renderer, raycaster, mouse;
-let pathMeshes = [], slotMeshes = [];
+let slotMeshes = [];
 
 function initThreeJS() {
   scene = new THREE.Scene();
@@ -594,7 +594,6 @@ function initThreeJS() {
     tile.lookAt(end.x, 0.08, end.z);
     tile.receiveShadow = true;
     scene.add(tile);
-    pathMeshes.push({ start, end, dir, len });
   }
 
   // Tower slots (buildable positions)
@@ -756,11 +755,10 @@ function onCanvasClick_PlaceHero(event) {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ENEMY SYSTEM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-let pathProgress = {}; // track each enemy's path progress
 
 function spawnEnemy(type) {
   const etype = ENEMY_TYPES[type];
-  const start = pathMeshes[0].start.clone();
+  const start = pathPoints[0].clone();
   start.y = 0.5 + etype.scale * 0.3;
 
   const geo = new THREE.SphereGeometry(etype.scale * 0.5, 12, 8);
@@ -782,19 +780,17 @@ function spawnEnemy(type) {
 
   const enemy = {
     type,
-    hp: etype.hp * (1 + (GameHub.wave - 1) * 0.3),  // +30% HP per wave
+    hp: etype.hp * (1 + (GameHub.wave - 1) * 0.3),
     maxHp: etype.hp * (1 + (GameHub.wave - 1) * 0.3),
     speed: etype.speed,
     reward: etype.reward,
     scale: etype.scale,
     mesh,
-    pathIdx: 0,
-    pathT: 0,
+    waypointIdx: 0,
     slowedUntil: 0,
     burning: false,
   };
 
-  pathProgress[enemy.mesh.uuid] = { pathIdx: 0, pathT: 0 };
   GameHub.enemies.push(enemy);
   GameHub.enemiesRemaining++;
 }
@@ -804,54 +800,47 @@ function updateEnemies(dt) {
     const e = GameHub.enemies[i];
     if (e.hp <= 0) continue;
 
+    // Speed modifier (frost slow)
     let speed = e.speed;
     if (Date.now() < e.slowedUntil) {
-      speed *= 0.3; // slowed by frost tower
-      e.mesh.material.color.setHex(0x60a5fa); // blue tint
+      speed *= 0.3;
+      e.mesh.material.color.setHex(0x60a5fa);
     } else {
       e.mesh.material.color.setHex(ENEMY_TYPES[e.type].color);
     }
 
-    const key = e.mesh.uuid;
-    if (!pathProgress[key]) pathProgress[key] = { pathIdx: 0, pathT: 0 };
-    const prog = pathProgress[key];
+    // Current position
+    const ex = e.mesh.position.x;
+    const ez = e.mesh.position.z;
 
-    prog.pathT += speed * dt * 0.1;
+    // Target waypoint
+    const target = pathPoints[e.waypointIdx];
+    const dx = target.x - ex;
+    const dz = target.z - ez;
+    const dist = Math.sqrt(dx * dx + dz * dz);
 
-    while (prog.pathT >= 1 && prog.pathIdx < pathMeshes.length - 1) {
-      prog.pathT -= 1;
-      prog.pathIdx++;
-    }
-
-    if (prog.pathIdx >= pathMeshes.length - 1 && prog.pathT >= 1) {
-      // Enemy reached the end
-      loseHP(1);
-      scene.remove(e.mesh);
-      GameHub.enemies.splice(i, 1);
-      GameHub.enemiesRemaining--;
-      continue;
-    }
-
-    const seg = pathMeshes[prog.pathIdx];
-    if (seg) {
-      const pos = new THREE.Vector3().lerpVectors(seg.start, seg.end, prog.pathT);
-      pos.y = 0.5 + e.scale * 0.3;
-      e.mesh.position.copy(pos);
-
-      // Face direction of travel
-      if (prog.pathT < 0.9) {
-        const nextSeg = pathMeshes[Math.min(prog.pathIdx + 1, pathMeshes.length - 1)];
-        if (nextSeg) {
-          const dir = new THREE.Vector3().subVectors(nextSeg.start, seg.end).normalize();
-          e.mesh.lookAt(e.mesh.position.clone().add(dir));
-        }
+    if (dist < speed * dt * 30) {
+      // Reached waypoint — advance to next
+      e.waypointIdx++;
+      if (e.waypointIdx >= pathPoints.length) {
+        // Reached end
+        loseHP(1);
+        scene.remove(e.mesh);
+        GameHub.enemies.splice(i, 1);
+        GameHub.enemiesRemaining--;
+        continue;
       }
-
-      // Bobbing
-      e.mesh.position.y += Math.sin(Date.now() * 0.005 + i) * 0.08;
+    } else {
+      // Move toward waypoint
+      e.mesh.position.x += (dx / dist) * speed * dt * 30;
+      e.mesh.position.z += (dz / dist) * speed * dt * 30;
+      // Face direction of travel
+      e.mesh.lookAt(ex + dx, e.mesh.position.y, ez + dz);
     }
 
-    // HP bar
+    // Bobbing
+    e.mesh.position.y = 0.5 + e.scale * 0.3 + Math.sin(Date.now() * 0.005 + i) * 0.08;
+
     updateEnemyHPBar(e);
   }
 }
@@ -1558,7 +1547,6 @@ function restartGame() {
     s.ring.material.color.setHex(0xd4a847);
     s.ring.material.emissive.setHex(0x000000);
   });
-  pathProgress = {};
 
   if (waveCountdownTimer) { clearTimeout(waveCountdownTimer); waveCountdownTimer = null; }
   waveCountdown = 0;
