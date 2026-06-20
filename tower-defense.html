@@ -391,11 +391,11 @@ const TOWER_DATABASE = {
 };
 
 const ENEMY_TYPES = {
-  goblin:   { name: '哥布林',   hp: 40,  speed: 2.5, reward: 10, color: 0x22c55e, scale: 0.6 },
-  orc:      { name: '獸人戰士', hp: 100, speed: 1.5, reward: 25, color: 0xdc2626, scale: 0.9 },
-  skeleton: { name: '骸骨兵',   hp: 60,  speed: 2.0, reward: 15, color: 0xe5e5e5, scale: 0.7 },
-  troll:    { name: '巨魔',     hp: 200, speed: 1.0, reward: 50, color: 0x7c3aed, scale: 1.2 },
-  dragon:   { name: '幼龍',     hp: 500, speed: 0.8, reward: 150, color: 0xf97316, scale: 1.5 },
+  goblin:   { name: '哥布林',   hp: 40,  speed: 2.0, reward: 10, color: 0x22c55e, scale: 1.2 },
+  orc:      { name: '獸人戰士', hp: 100, speed: 1.5, reward: 25, color: 0xdc2626, scale: 1.8 },
+  skeleton: { name: '骸骨兵',   hp: 60,  speed: 2.0, reward: 15, color: 0xe5e5e5, scale: 1.4 },
+  troll:    { name: '巨魔',     hp: 200, speed: 1.0, reward: 50, color: 0x7c3aed, scale: 2.4 },
+  dragon:   { name: '幼龍',     hp: 500, speed: 0.8, reward: 150, color: 0xf97316, scale: 3.0 },
 };
 
 const WAVE_CONFIG = [
@@ -770,12 +770,12 @@ function spawnEnemy(type) {
   scene.add(mesh);
 
   // Eyes
-  const eyeGeo = new THREE.SphereGeometry(0.1, 6, 4);
+  const eyeGeo = new THREE.SphereGeometry(0.18, 6, 4);
   const eyeMat = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
   const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
   const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-  eyeL.position.set(-0.12, 0.1, 0.4);
-  eyeR.position.set(0.12, 0.1, 0.4);
+  eyeL.position.set(-0.2, 0.2, 0.7);
+  eyeR.position.set(0.2, 0.2, 0.7);
   mesh.add(eyeL);
   mesh.add(eyeR);
 
