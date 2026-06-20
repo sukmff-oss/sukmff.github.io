@@ -782,8 +782,8 @@ function spawnEnemy(type) {
 
   const enemy = {
     type,
-    hp: etype.hp,
-    maxHp: etype.hp,
+    hp: etype.hp * (1 + (GameHub.wave - 1) * 0.3),  // +30% HP per wave
+    maxHp: etype.hp * (1 + (GameHub.wave - 1) * 0.3),
     speed: etype.speed,
     reward: etype.reward,
     scale: etype.scale,
@@ -1110,7 +1110,46 @@ function updateHeroHPBars() {
 function startWave() {
   if (GameHub.waveInProgress) return;
   if (GameHub.state === 'MENU' || GameHub.state === 'GAMEOVER') return;
+  if (waveCountdownTimer) { clearTimeout(waveCountdownTimer); waveCountdownTimer = null; }
+  autoStartNextWave();
+}
 
+function waveCleared() {
+  GameHub.waveInProgress = false;
+  GameHub.gold += 50 + GameHub.wave * 10;
+  GameHub.mana = Math.min(GameHub.maxMana, GameHub.mana + 30);
+  updateHUD();
+
+  if (GameHub.wave >= GameHub.maxWaves) {
+    gameOver(true);
+  } else {
+    GameHub.wave++;
+    updateHUD();
+    autoStartNextWave();
+  }
+}
+
+let waveCountdown = 0;
+let waveCountdownTimer = null;
+
+function autoStartNextWave() {
+  waveCountdown = 5; // 5 second countdown
+  GameHub.state = 'PREPARE';
+
+  function tick() {
+    if (waveCountdown > 0) {
+      document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波 (${waveCountdown}s)`;
+      waveCountdown--;
+      waveCountdownTimer = setTimeout(tick, 1000);
+    } else {
+      document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波來襲！`;
+      startWave_real();
+    }
+  }
+  tick();
+}
+
+function startWave_real() {
   GameHub.state = 'WAVE';
   GameHub.waveInProgress = true;
 
@@ -1133,29 +1172,7 @@ function startWave() {
   });
 
   GameHub.enemiesRemaining = totalEnemies;
-  document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波來襲！`;
   playSound('waveStart');
-}
-
-function waveCleared() {
-  GameHub.waveInProgress = false;
-  GameHub.gold += 50 + GameHub.wave * 10; // wave completion bonus
-  GameHub.mana = Math.min(GameHub.maxMana, GameHub.mana + 30);
-  updateHUD();
-
-  if (GameHub.wave >= GameHub.maxWaves) {
-    gameOver(true);
-  } else {
-    GameHub.wave++;
-    updateHUD();
-    document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波準備中...`;
-    setTimeout(() => {
-      if (GameHub.state === 'WAVE') {
-        GameHub.state = 'PREPARE';
-        document.getElementById('wave-text').textContent = `第 ${GameHub.wave} 波準備中`;
-      }
-    }, 2000);
-  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1491,11 +1508,10 @@ function startGame() {
   document.getElementById('spell-panel').style.display = 'flex';
 
   GameHub.state = 'PREPARE';
-  document.getElementById('wave-text').textContent = '第 1 波準備中';
-
   initThreeJS();
   updateHUD();
   animate();
+  setTimeout(() => autoStartNextWave(), 1500); // auto start first wave after 1.5s
 }
 
 function gameOver(victory) {
@@ -1544,13 +1560,14 @@ function restartGame() {
   });
   pathProgress = {};
 
+  if (waveCountdownTimer) { clearTimeout(waveCountdownTimer); waveCountdownTimer = null; }
+  waveCountdown = 0;
   document.getElementById('game-overlay').classList.remove('active');
   document.getElementById('tower-panel').style.display = 'none';
   document.getElementById('hero-panel').style.display = 'none';
   document.getElementById('spell-panel').style.display = 'none';
-  document.getElementById('wave-text').textContent = '第 1 波準備中';
   updateHUD();
-}
+  autoStartNextWave();
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN LOOP
