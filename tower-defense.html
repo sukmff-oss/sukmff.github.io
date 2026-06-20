@@ -384,10 +384,10 @@ const HERO_DATABASE = [
 // 軸3: COMBAT AXIS (戰鬥系統)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const TOWER_DATABASE = {
-  arrow:  { name: '箭塔', icon: '🏹', cost: 50, damage: 15, range: 4.5, fireRate: 1.2, color: 0x8b5cf6, projectileColor: 0xa78bfa, projectileSpeed: 8 },
-  cannon: { name: '炮塔', icon: '💣', cost: 80, damage: 40, range: 3.5, fireRate: 0.5, color: 0xf59e0b, projectileColor: 0xfbbf24, projectileSpeed: 5, splash: 1.5 },
-  frost:  { name: '冰塔', icon: '❄️', cost: 70, damage: 10, range: 4.0, fireRate: 0.8, color: 0x3b82f6, projectileColor: 0x60a5fa, projectileSpeed: 6, slow: 0.4 },
-  mage:   { name: '法塔', icon: '🔮', cost: 100, damage: 30, range: 5.0, fireRate: 0.6, color: 0x8b5cf6, projectileColor: 0xc4b5fd, projectileSpeed: 7 },
+  arrow:  { name: '箭塔', icon: '🏹', cost: 50, damage: 8, range: 4.5, fireRate: 1.2, color: 0x8b5cf6, projectileColor: 0xa78bfa, projectileSpeed: 8 },
+  cannon: { name: '炮塔', icon: '💣', cost: 80, damage: 15, range: 3.5, fireRate: 0.5, color: 0xf59e0b, projectileColor: 0xfbbf24, projectileSpeed: 5, splash: 1.5 },
+  frost:  { name: '冰塔', icon: '❄️', cost: 70, damage: 5, range: 4.0, fireRate: 0.8, color: 0x3b82f6, projectileColor: 0x60a5fa, projectileSpeed: 6, slow: 0.4 },
+  mage:   { name: '法塔', icon: '🔮', cost: 100, damage: 12, range: 5.0, fireRate: 0.6, color: 0x8b5cf6, projectileColor: 0xc4b5fd, projectileSpeed: 7 },
 };
 
 const ENEMY_TYPES = {
@@ -1140,24 +1140,20 @@ function autoStartNextWave() {
 }
 
 function startWave_real() {
-  console.log('startWave_real called, wave=' + GameHub.wave);
   GameHub.state = 'WAVE';
   GameHub.waveInProgress = true;
 
   const waveIdx = Math.min(GameHub.wave - 1, WAVE_CONFIG.length - 1);
   const waveData = WAVE_CONFIG[waveIdx];
-  console.log('waveData:', JSON.stringify(waveData));
 
   let totalEnemies = 0;
   waveData.forEach(group => totalEnemies += group.count);
   GameHub.enemiesRemaining = 0;
-  console.log('totalEnemies:', totalEnemies);
 
   let delay = 500;
   waveData.forEach(group => {
     for (let i = 0; i < group.count; i++) {
       setTimeout(() => {
-        console.log('spawning ' + group.type + ' #' + i);
         if (GameHub.state === 'GAMEOVER') return;
         spawnEnemy(group.type);
       }, delay + i * group.interval);
