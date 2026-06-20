@@ -223,7 +223,7 @@ function shoot(){
   raycaster.setFromCamera(shootOrigin,camera);
   const hits=raycaster.intersectObjects(enemyMeshes,false);
   if(hits.length>0){
-    const e=hits[0].object.userData.enemy;
+    const e=getEnemyFromHit(hits[0].object);
     if(e&&e.hp>0){const dmg=e.isClown?(atk*0.5):(e.isArmored?(atk*0.3):atk);damageEnemy(e,dmg,hits[0].point);}}
   if(count>1){
     for(let i=1;i<count;i++){
@@ -231,13 +231,21 @@ function shoot(){
       const r2=new THREE.Raycaster();r2.setFromCamera(new THREE.Vector2(offset,offset*0.5),camera);
       const h2=r2.intersectObjects(enemyMeshes,false);
       if(h2.length>0){
-        const e2=h2[0].object.userData.enemy;
+        const e2=getEnemyFromHit(h2[0].object);
         if(e2&&e2.hp>0){const dmg2=e2.isClown?(atk*0.4):(e2.isArmored?(atk*0.2):Math.floor(atk*0.7));damageEnemy(e2,dmg2,h2[0].point);}
       }
     }
   }
 }
 
+function getEnemyFromHit(obj){
+  let o=obj;
+  while(o){
+    if(o.userData&&o.userData.enemy)return o.userData.enemy;
+    o=o.parent;
+  }
+  return null;
+}
 function damageEnemy(e,dmg,point){
   if(e.hp<=0)return;
   if(e.isArmored&&e.armor>0){
@@ -692,7 +700,7 @@ function updateHUD(){
   raycaster.setFromCamera(shootOrigin,camera);
   const hits=raycaster.intersectObjects(enemyMeshes,false);
   if(hits.length>0){
-    const e=hits[0].object.userData.enemy;
+    const e=getEnemyFromHit(hits[0].object);
     if(e&&e.hp>0){
       const screenPos=hits[0].point.clone().project(camera);
       ehBar.style.display='block';ehBar.style.left=((screenPos.x+1)/2*innerWidth-30)+'px';ehBar.style.top=((-screenPos.y+1)/2*innerHeight-20)+'px';
