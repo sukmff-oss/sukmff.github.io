@@ -511,6 +511,7 @@ function updateSpellUI() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 let scene, camera, renderer, raycaster, mouse;
 let slotMeshes = [];
+let pathPoints = [];
 
 function initThreeJS() {
   scene = new THREE.Scene();
@@ -563,7 +564,7 @@ function initThreeJS() {
   scene.add(gridHelper);
 
   // Path waypoints (S-curve through the map)
-  const pathPoints = [
+  pathPoints = [
     new THREE.Vector3(-14, 0.1, -8),
     new THREE.Vector3(-6, 0.1, -8),
     new THREE.Vector3(-6, 0.1, -2),
