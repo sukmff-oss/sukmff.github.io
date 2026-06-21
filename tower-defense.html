@@ -384,18 +384,18 @@ const HERO_DATABASE = [
 // 軸3: COMBAT AXIS (戰鬥系統)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const TOWER_DATABASE = {
-  arrow:  { name: '箭塔', icon: '🏹', cost: 50, damage: 8, range: 4.5, fireRate: 1.2, color: 0x8b5cf6, projectileColor: 0xa78bfa, projectileSpeed: 8 },
-  cannon: { name: '炮塔', icon: '💣', cost: 80, damage: 15, range: 3.5, fireRate: 0.5, color: 0xf59e0b, projectileColor: 0xfbbf24, projectileSpeed: 5, splash: 1.5 },
-  frost:  { name: '冰塔', icon: '❄️', cost: 70, damage: 5, range: 4.0, fireRate: 0.8, color: 0x3b82f6, projectileColor: 0x60a5fa, projectileSpeed: 6, slow: 0.4 },
-  mage:   { name: '法塔', icon: '🔮', cost: 100, damage: 12, range: 5.0, fireRate: 0.6, color: 0x8b5cf6, projectileColor: 0xc4b5fd, projectileSpeed: 7 },
+  arrow:  { name: '箭塔', icon: '🏹', cost: 50, damage: 8, range: 4.5, fireRate: 0.5, color: 0x8b5cf6, projectileColor: 0xa78bfa, projectileSpeed: 20 },
+  cannon: { name: '炮塔', icon: '💣', cost: 80, damage: 15, range: 3.5, fireRate: 0.3, color: 0xf59e0b, projectileColor: 0xfbbf24, projectileSpeed: 14, splash: 1.5 },
+  frost:  { name: '冰塔', icon: '❄️', cost: 70, damage: 5, range: 4.0, fireRate: 0.4, color: 0x3b82f6, projectileColor: 0x60a5fa, projectileSpeed: 16, slow: 0.4 },
+  mage:   { name: '法塔', icon: '🔮', cost: 100, damage: 12, range: 5.0, fireRate: 0.3, color: 0x8b5cf6, projectileColor: 0xc4b5fd, projectileSpeed: 18 },
 };
 
 const ENEMY_TYPES = {
-  goblin:   { name: '哥布林',   hp: 80,  speed: 1.8, reward: 10, color: 0x22c55e, scale: 2.5 },
-  orc:      { name: '獸人戰士', hp: 200, speed: 1.2, reward: 25, color: 0xdc2626, scale: 4.0 },
-  skeleton: { name: '骸骨兵',   hp: 120, speed: 1.8, reward: 15, color: 0xe5e5e5, scale: 3.0 },
-  troll:    { name: '巨魔',     hp: 400, speed: 0.8, reward: 50, color: 0x7c3aed, scale: 5.0 },
-  dragon:   { name: '幼龍',     hp: 1000, speed: 0.6, reward: 150, color: 0xf97316, scale: 6.5 },
+  goblin:   { name: '哥布林',   hp: 80,  speed: 0.12, reward: 10, color: 0x22c55e, scale: 2.5 },
+  orc:      { name: '獸人戰士', hp: 200, speed: 0.09, reward: 25, color: 0xdc2626, scale: 4.0 },
+  skeleton: { name: '骸骨兵',   hp: 120, speed: 0.11, reward: 15, color: 0xe5e5e5, scale: 3.0 },
+  troll:    { name: '巨魔',     hp: 400, speed: 0.06, reward: 50, color: 0x7c3aed, scale: 5.0 },
+  dragon:   { name: '幼龍',     hp: 1000, speed: 0.04, reward: 150, color: 0xf97316, scale: 6.5 },
 };
 
 const WAVE_CONFIG = [
@@ -933,7 +933,7 @@ function updateProjectiles(dt) {
     }
 
     const dir = new THREE.Vector3().subVectors(p.target.mesh.position, p.mesh.position).normalize();
-    p.mesh.position.addScaledVector(dir, p.speed * dt * 0.5);
+    p.mesh.position.addScaledVector(dir, p.speed * dt * 3);
 
     if (p.mesh.position.distanceTo(p.target.mesh.position) < 0.5) {
       // Hit!
