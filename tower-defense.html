@@ -794,6 +794,7 @@ function spawnEnemy(type) {
 
   GameHub.enemies.push(enemy);
   GameHub.enemiesRemaining++;
+  onEnemySpawned();
 }
 
 function updateEnemies(dt) {
@@ -829,6 +830,7 @@ function updateEnemies(dt) {
         scene.remove(e.mesh);
         GameHub.enemies.splice(i, 1);
         GameHub.enemiesRemaining--;
+        onEnemyRemoved();
         continue;
       }
     } else {
@@ -985,9 +987,7 @@ function killEnemy(enemy) {
   updateHUD();
 
   // Check wave clear
-  if (GameHub.enemiesRemaining <= 0 && GameHub.waveInProgress) {
-    waveCleared();
-  }
+  onEnemyRemoved();
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1162,7 +1162,28 @@ function startWave_real() {
   });
 
   GameHub.enemiesRemaining = totalEnemies;
+  GameHub.totalEnemiesThisWave = totalEnemies; // track for delayed spawn
+  GameHub.spawnedThisWave = 0;
   playSound('waveStart');
+}
+
+function onEnemySpawned() {
+  GameHub.spawnedThisWave++;
+  // Check if all spawned AND none left alive
+  if (GameHub.spawnedThisWave >= GameHub.totalEnemiesThisWave &&
+      GameHub.enemies.length === 0 &&
+      GameHub.waveInProgress) {
+    waveCleared();
+  }
+}
+
+function onEnemyRemoved() {
+  // Check if all spawned AND none left alive
+  if (GameHub.spawnedThisWave >= GameHub.totalEnemiesThisWave &&
+      GameHub.enemies.length === 0 &&
+      GameHub.waveInProgress) {
+    waveCleared();
+  }
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1536,9 +1557,10 @@ function restartGame() {
   Object.assign(GameHub, {
     state: 'PREPARE', gold: 200, hp: 20, mana: 100, wave: 1,
     score: 0, towers: [], heroes: [], enemies: [], projectiles: [],
-    effects: [], particles: [], towerSlots: [], selectedTowerType: null,
+    effects: [], particles: [], selectedTowerType: null,
     selectedHeroId: null, spellCooldowns: { fire: 0, ice: 0, heal: 0 },
     waveInProgress: false, enemiesRemaining: 0, totalKills: 0,
+    totalEnemiesThisWave: 0, spawnedThisWave: 0,
   });
 
   // Reset slot meshes
